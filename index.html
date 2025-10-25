@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice From Void PC Games</title>
+    
+    <!-- Load Tailwind CSS --><script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for printing */
+        @media print {
+            body {
+                margin: 0;
+                padding: 0;
+            }
+            /* Hide the input panel and controls when printing */
+            .print-hidden {
+                display: none !important;
+            }
+            /* Ensure the invoice card takes full width/height for printing */
+            #invoiceOutput {
+                max-width: none;
+                width: 100%;
+                min-height: 100vh;
+                box-shadow: none; /* Remove shadow for clean print */
+                border: none;
+                margin: 0;
+                padding: 2rem;
+            }
+        }
+        /* Inter font for modern look */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f4f7f9;
+        }
+        /* Fix table alignment for better appearance */
+        th, td {
+            padding-left: 1.5rem;
+            padding-right: 1.5rem;
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-8 flex flex-col items-center min-h-screen">
+
+    <!-- Input Panel (Website Control Area) --><div class="print-hidden w-full max-w-xl mb-8 bg-white p-6 rounded-xl shadow-xl border border-gray-200">
+        <h1 class="text-3xl font-bold text-gray-800 mb-4 text-center">Invoice Generator</h1>
+        
+        <!-- Connection Info Block --><p class="text-sm text-green-700 mb-4 p-2 bg-green-100 rounded-lg border border-green-300">
+            ✅ **URL Updated!** The app is now configured with your new live Apps Script URL.
+        </p>
+
+        <label for="rowNumber" class="block text-sm font-medium text-gray-700 mb-2">
+            Enter Row Number (Starting from 2):
+        </label>
+        <div class="flex space-x-3">
+            <input type="number" id="rowNumber" value="2" min="2" class="flex-grow p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 shadow-sm" placeholder="e.g., 2, 3, 4">
+            <button onclick="generateInvoice()" class="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition duration-150 shadow-md active:shadow-none">
+                Generate Invoice
+            </button>
+        </div>
+
+        <div id="message" class="mt-4 text-sm text-center font-medium"></div>
+    </div>
+
+    <!-- Invoice Output Area --><div id="invoiceOutput" class="w-full max-w-3xl bg-white rounded-xl shadow-2xl transition-all duration-300 min-h-[400px] p-6 sm:p-10 border border-gray-300">
+        <p class="text-gray-500 text-center">Enter a row number and click 'Generate Invoice' to see the result.</p>
+    </div>
+
+    <!-- Print Button and Share Button Container (Hidden until invoice is generated) -->
+    <div class="print-hidden mt-6 flex space-x-4">
+        <button id="printButton" onclick="window.print()" class="px-8 py-3 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition duration-150 shadow-xl active:shadow-none hidden">
+            <svg class="w-5 h-5 inline mr-2 -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m4 0v3m0-3h-4m4 0h4m-4 0V9m0 8h4m-4 0H9m4 0v-3m-4 3h4m-4 0v-3m-4 3h-4m4 0v-3"></path></svg>
+            Print Invoice
+        </button>
+        <!-- NEW Share Button -->
+        <button id="shareButton" onclick="shareInvoice()" class="px-8 py-3 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition duration-150 shadow-xl active:shadow-none hidden">
+            <svg class="w-5 h-5 inline mr-2 -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.684 14.502 9.273 15.54 10.158 16.273L12 18L13.842 16.273C14.727 15.54 15.316 14.502 15.316 13.342V6.658C15.316 5.498 14.727 4.46 13.842 3.727L12 2L10.158 3.727C9.273 4.46 8.684 5.498 8.684 6.658V13.342Z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18V22M15.316 13.342L18 16L21 13.342M8.684 13.342L5 16L3 13.342"></path></svg>
+            Share Invoice
+        </button>
+    </div>
+
+
+    <script>
+        // --- 1. SIMULATED DATA (Fallback) ---
+        // Headers here MUST match the exact headers in your Google Sheet for the fallback to work correctly.
+        const INVOICE_DATA_FALLBACK = [
+            {
+                "Timestamp": "23/10/2025 22:20:30",
+                "NAME OF CUSTOMER": "tarunendra_vishwakarauna016",
+                "PRODUCT NAME": "spiderman",
+                "PRODUCT BUY PRICE": 0.00,
+                "PRODUCT SELL PRICE": 70.00,
+                "PROFITS": 70.00,
+                "QR Code Url": "https://placehold.co/150x150/805AD5/FFFFFF?text=SPIDERMAN+QR" // Placeholder URL
+            },
+            {
+                "Timestamp": "23/10/2025 22:23:32",
+                "NAME OF CUSTOMER": "_mj__gaming",
+                "PRODUCT NAME": "amazon prime",
+                "PRODUCT BUY PRICE": 49.00,
+                "PRODUCT SELL PRICE": 50.00,
+                "PROFITS": 1.00,
+                "QR Code Url": "https://placehold.co/150x150/F6AD55/FFFFFF?text=AMAZON+QR" // Placeholder URL
+            },
+            {
+                "Timestamp": "23/10/2025 22:28:15",
+                "NAME OF CUSTOMER": "_ml_gaming",
+                "PRODUCT NAME": "netflix",
+                "PRODUCT BUY PRICE": 129.00,
+                "PRODUCT SELL PRICE": 149.00,
+                "PROFITS": 20.00,
+                "QR Code Url": "https://placehold.co/150x150/E53E3E/FFFFFF?text=NETFLIX+QR" // Placeholder URL
+            },
+            {
+                "Timestamp": "25/10/2025 13:06:16",
+                "NAME OF CUSTOMER": "swaraj",
+                "PRODUCT NAME": "Youtube Premium",
+                "PRODUCT BUY PRICE": 122.00,
+                "PRODUCT SELL PRICE": 130.00,
+                "PROFITS": 8.00,
+                "QR Code Url": "https://placehold.co/150x150/38A169/FFFFFF?text=YOUTUBE+QR" // Placeholder URL
+            }
+        ];
+        
+        // --- 2. GOOGLE APPS SCRIPT URL ---
+        // *** THIS IS YOUR LIVE URL ***
+        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx0TbFbHSaoL5oYYJ1lYw71MetO6Pyyy-nVra48qv-d5liDXV-HmCZJBl7MtxfcJ6nVLg/exec"; 
+
+        // --- 3. STATIC UPI QR CODE URL ---
+        // The image link you provided for the UPI QR Code, used for all invoices.
+        const STATIC_UPI_QR_CODE_URL = "https://i.ibb.co/B56cpnDr/Navi-QR-RAMESH-RAISING-CHAVAN-23102025223920205.png"; 
+
+
+        // --- 4. DOM ELEMENTS ---
+        const inputRowNumber = document.getElementById('rowNumber');
+        const outputArea = document.getElementById('invoiceOutput');
+        const messageBox = document.getElementById('message');
+        const printBtn = document.getElementById('printButton');
+        const shareBtn = document.getElementById('shareButton'); // New element reference
+
+        /**
+         * Clears messages and the invoice output area.
+         */
+        function clearOutput() {
+            messageBox.textContent = '';
+            outputArea.innerHTML = '';
+            printBtn.classList.add('hidden');
+            shareBtn.classList.add('hidden'); // Hide share button as well
+        }
+
+        /**
+         * Main function to validate input, fetch data, and generate the invoice HTML.
+         */
+        async function generateInvoice() {
+            clearOutput();
+
+            const rowNumber = parseInt(inputRowNumber.value.trim(), 10);
+            
+            // Validation
+            if (isNaN(rowNumber) || rowNumber < 2) {
+                messageBox.textContent = 'Please enter a valid row number starting from 2.';
+                messageBox.classList.add('text-red-600');
+                return;
+            }
+
+            let dataArray;
+            let source = 'local data';
+
+            if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== "YOUR_NEWLY_GENERATED_APPS_SCRIPT_URL_HERE") {
+                // --- Live API Fetch Path ---
+                messageBox.textContent = 'Fetching live data...';
+                messageBox.classList.remove('text-red-600', 'text-green-600');
+                messageBox.classList.add('text-gray-700');
+                source = 'live API';
+                
+                try {
+                    // Call the Apps Script Web App to get all sheet data
+                    const response = await fetch(APPS_SCRIPT_URL);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    const result = await response.json();
+
+                    if (result.error) {
+                         throw new Error(`Apps Script Error: ${result.error}`);
+                    }
+                    
+                    // The script is configured to return data under the "data-a" key
+                    dataArray = result["data-a"]; 
+                    if (!dataArray || dataArray.length === 0) {
+                        // Attempt to fall back to 'data' key if 'data-a' fails, just in case the script changed.
+                        dataArray = result.data;
+                        if (!dataArray || dataArray.length === 0) {
+                            throw new Error("Data array is empty. Check if your sheet has data.");
+                        }
+                    }
+
+                } catch (error) {
+                    // If API fails, fall back to local data and show an error
+                    console.error('API Fetch Error:', error);
+                    messageBox.textContent = '⚠️ Could not fetch live data. Using simulated local data as a fallback.';
+                    messageBox.classList.remove('text-green-600');
+                    messageBox.classList.add('text-red-600');
+                    dataArray = INVOICE_DATA_FALLBACK;
+                    source = 'local data (API failed)';
+                }
+            } else {
+                // --- Fallback Path ---
+                dataArray = INVOICE_DATA_FALLBACK;
+                messageBox.textContent = 'Using simulated local data. Please update APPS_SCRIPT_URL to connect live.';
+                messageBox.classList.remove('text-green-600', 'text-gray-700');
+                messageBox.classList.add('text-red-600');
+            }
+
+
+            // --- Data Processing (Same logic regardless of source) ---
+            const dataIndex = rowNumber - 2;
+            
+            const maxRowNumber = dataArray.length + 1; 
+
+            if (dataIndex < 0 || dataIndex >= dataArray.length) {
+                messageBox.textContent = `Row ${rowNumber} is outside the range of the current data rows (2-${maxRowNumber}).`;
+                messageBox.classList.remove('text-green-600', 'text-gray-700');
+                messageBox.classList.add('text-red-600');
+                return;
+            }
+
+            // Get the record
+            const record = dataArray[dataIndex];
+            
+            // Use the exact header names as keys
+            const sellPriceValue = record["PRODUCT SELL PRICE"];
+            // Format with Rupee symbol
+            const finalPrice = '₹' + sellPriceValue.toFixed(2); 
+            
+            // Generate the Invoice HTML
+            const invoiceHTML = generateInvoiceTemplate(rowNumber, record, finalPrice);
+
+            outputArea.innerHTML = invoiceHTML;
+            
+            messageBox.textContent = `Invoice successfully generated for Row ${rowNumber}. (Source: ${source})`;
+            messageBox.classList.remove('text-red-600', 'text-gray-700');
+            messageBox.classList.add('text-green-600');
+
+            printBtn.classList.remove('hidden');
+            shareBtn.classList.remove('hidden'); // Show the share button
+        }
+
+        /**
+         * Creates the visual invoice HTML template.
+         */
+        function generateInvoiceTemplate(rowNumber, record, finalPrice) {
+            
+            // --- Keys are the exact header names from the Google Sheet ---
+            // We ensure we use the STATIC_UPI_QR_CODE_URL for all invoices, as requested.
+            const qrCodeUrl = STATIC_UPI_QR_CODE_URL; 
+
+            const customerName = record["NAME OF CUSTOMER"];
+            const productName = record["PRODUCT NAME"];
+            const sellPrice = record["PRODUCT SELL PRICE"];
+            const profits = record["PROFITS"];
+            const buyPrice = record["PRODUCT BUY PRICE"];
+            const timestamp = record["Timestamp"]; 
+
+
+            return `
+                <!-- Invoice Header --><div class="flex justify-between items-start border-b-2 border-indigo-200 pb-4 mb-8">
+                    <div>
+                        <h2 class="text-5xl font-extrabold text-indigo-700 tracking-tight">INVOICE</h2>
+                        <p class="text-sm text-gray-500 mt-2 font-mono">Invoice ID: INV-${rowNumber.toString().padStart(5, '0')}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-xl font-bold text-gray-800">Void PC Games</p>
+                        <p class="text-sm text-gray-600">Generated on: ${new Date().toLocaleDateString()}</p>
+                    </div>
+                </div>
+
+                <!-- Customer Details --><div class="mb-8 p-4 bg-indigo-50 rounded-xl shadow-inner">
+                    <h3 class="text-xl font-bold text-indigo-700 mb-2 border-b border-indigo-200 pb-1">Billed To</h3>
+                    <p class="text-gray-700 font-medium">Customer Name: <span class="text-gray-900 font-extrabold">${customerName}</span></p>
+                    <p class="text-gray-700 text-sm">Transaction Time: ${timestamp}</p>
+                </div>
+
+                <!-- Line Items Table --><div class="mb-8 border border-gray-200 rounded-lg overflow-hidden">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Description</th>
+                                <th class="px-6 py-3 text-right text-xs font-bold text-gray-600 uppercase tracking-wider">Unit Price</th>
+                                <th class="px-6 py-3 text-right text-xs font-bold text-gray-600 uppercase tracking-wider">Qty</th>
+                                <th class="px-6 py-3 text-right text-xs font-bold text-gray-600 uppercase tracking-wider">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-100">
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-base font-medium text-gray-900">${productName}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-base text-gray-700 text-right">₹${sellPrice.toFixed(2)}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-base text-gray-700 text-right">1</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-base font-extrabold text-indigo-600 text-right">${finalPrice}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Totals & Payment Section --><div class="flex flex-col sm:flex-row justify-between items-start pt-4 border-t border-gray-200 mt-6">
+                    
+                    <!-- QR Code Payment: NOW WRAPPED IN ANCHOR TAG --><div class="flex flex-col items-center w-full sm:w-2/5 mb-6 sm:mb-0 p-4 border border-gray-200 rounded-xl shadow-md bg-white">
+                        <p class="text-base font-semibold text-gray-700 mb-2">Scan to Pay (UPI)</p>
+                        <a href="https://ibb.co/67trMXh1" target="_blank" rel="noopener noreferrer">
+                            <img 
+                                src="${qrCodeUrl}" 
+                                alt="Payment QR Code Link" 
+                                class="w-36 h-36 rounded-lg shadow-xl border-2 border-indigo-400"
+                                onerror="this.onerror=null;this.src='https://placehold.co/150x150/CCCCCC/666666?text=QR+Error';"
+                            />
+                        </a>
+                        <p class="text-sm text-indigo-600 mt-3 font-bold">Total Due: ${finalPrice}</p>
+                    </div>
+
+                    <!-- Total Summary --><div class="w-full sm:w-1/2 md:w-2/5 bg-indigo-50 p-6 rounded-xl border border-indigo-300 shadow-xl">
+                        <div class="flex justify-between font-medium text-gray-700 mb-2">
+                            <span>Subtotal:</span>
+                            <span>${finalPrice}</span>
+                        </div>
+                        <div class="flex justify-between font-medium text-gray-700 mb-4 border-b border-indigo-300 pb-2">
+                            <span>Tax (0%):</span>
+                            <span>₹0.00</span>
+                        </div>
+                        <div class="flex justify-between font-extrabold text-2xl text-indigo-700">
+                            <span>TOTAL:</span>
+                            <span>${finalPrice}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer / Internal Data --><div class="mt-8 pt-4 border-t border-gray-200 text-center text-xs text-gray-500">
+                    <p>Thank you for your business. For any queries, please contact Void PC Games</p>
+   </div>
+            `;
+        }
+
+        /**
+         * Shares the generated invoice details using Web Share API or falls back to copying the link.
+         */
+        async function shareInvoice() {
+            const rowNumber = inputRowNumber.value.trim();
+            const customerNameElement = outputArea.querySelector('.font-extrabold');
+            const finalPriceElement = outputArea.querySelector('.text-2xl.text-indigo-700 > span:last-child');
+            const productNameElement = outputArea.querySelector('.text-base.font-medium.text-gray-900');
+            
+            // Defensive checks
+            if (!customerNameElement || !finalPriceElement || !productNameElement) {
+                 messageBox.textContent = '❌ Cannot share yet. Please generate the invoice first.';
+                 messageBox.classList.remove('text-green-600', 'text-gray-700');
+                 messageBox.classList.add('text-red-600');
+                 return;
+            }
+
+            const customerName = customerNameElement.textContent;
+            const finalPrice = finalPriceElement.textContent;
+            const productName = productNameElement.textContent;
+            
+            const shareText = `Invoice INV-${rowNumber} for ${customerName}\nProduct: ${productName}\nTotal Due: ${finalPrice}\n\nTo view this invoice, open the app (link below) and enter Row Number ${rowNumber}.`;
+            
+            // 1. Try Web Share API (native share dialog)
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: `Invoice INV-${rowNumber}`,
+                        text: shareText,
+                        url: window.location.href // Share the app link
+                    });
+                    messageBox.textContent = `✅ Invoice details shared successfully!`;
+                    messageBox.classList.remove('text-red-600', 'text-gray-700');
+                    messageBox.classList.add('text-green-600');
+                    return;
+                } catch (error) {
+                    if (error.name === 'AbortError') return; // User closed dialog
+                    console.error('Web Share API failed, falling back to copy:', error);
+                }
+            }
+
+            // 2. Fallback to Clipboard Copy (using document.execCommand('copy') for iFrame reliability)
+            const clipboardText = shareText + "\n\nApp Link: " + window.location.href;
+            
+            try {
+                // Create a temporary textarea to hold the text
+                const tempTextArea = document.createElement('textarea');
+                tempTextArea.value = clipboardText;
+                tempTextArea.style.position = 'fixed';
+                tempTextArea.style.opacity = '0'; // Hide it
+                document.body.appendChild(tempTextArea);
+                
+                tempTextArea.select();
+                // Use document.execCommand('copy') as it is more reliable in iFrames
+                const success = document.execCommand('copy'); 
+                
+                document.body.removeChild(tempTextArea);
+
+                if (success) {
+                    messageBox.textContent = `✅ Invoice link and details copied to clipboard! Tell the recipient to use Row Number ${rowNumber}.`;
+                    messageBox.classList.remove('text-red-600', 'text-gray-700');
+                    messageBox.classList.add('text-green-600');
+                } else {
+                     throw new Error("document.execCommand('copy') returned false.");
+                }
+            } catch (err) {
+                console.error('Copy failed:', err);
+                messageBox.textContent = '❌ Automatic copying failed. Please manually copy the app link and share Row Number ' + rowNumber + '.';
+                messageBox.classList.remove('text-green-600', 'text-gray-700');
+                messageBox.classList.add('text-red-600');
+            }
+        }
+
+        // Initialize by running the function once for a default view of row 2
+        window.onload = generateInvoice;
+    </script>
+</body>
+</html>
