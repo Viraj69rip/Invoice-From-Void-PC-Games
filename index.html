@@ -1,443 +1,350 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Invoice From Void PC Games</title>
-    
-    <!-- Load Tailwind CSS --><script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        /* Custom styles for printing */
-        @media print {
-            body {
-                margin: 0;
-                padding: 0;
-            }
-            /* Hide the input panel and controls when printing */
-            .print-hidden {
-                display: none !important;
-            }
-            /* Ensure the invoice card takes full width/height for printing */
-            #invoiceOutput {
-                max-width: none;
-                width: 100%;
-                min-height: 100vh;
-                box-shadow: none; /* Remove shadow for clean print */
-                border: none;
-                margin: 0;
-                padding: 2rem;
-            }
-        }
-        /* Inter font for modern look */
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f4f7f9;
-        }
-        /* Fix table alignment for better appearance */
-        th, td {
-            padding-left: 1.5rem;
-            padding-right: 1.5rem;
-        }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Invoice — Void PC Games</title>
+  
+<style>
+  /* Try to remove browser print header/footer margins (may not remove URL in all browsers) */
+  @page { margin: 0; }
+  @media print {
+    html, body { margin: 0; padding: 0; }
+    /* Keep the invoice content visible and remove extra spacing */
+    .invoice-wrap { box-shadow:none !important; border:none !important; padding: 12mm !important; }
+  }
+
+  /* Hide common live-reload / dev overlays that some servers inject */
+  #__liveServerOverlay, #LiveServerMessage, #livereload, .livereload, .vite { display: none !important; }
+
+  /* Hide any small debug/status element (if it has an id/class you can change these selectors) */
+  .dev-status, .server-status, .debug-footer { display: none !important; }
+
+  /* If the URL is being printed by the browser's "header/footer", the only reliable solution
+     is to disable headers/footers from the print dialog (Chrome/Edge/Firefox). */
+</style>
+
+
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    /* Print rules */
+    @media print {
+      body { margin:0; padding:0; }
+      .no-print { display:none !important; }
+      .invoice-wrap { box-shadow:none !important; margin:0 !important; border:none !important; padding:0 1rem !important; }
+    }
+
+    /* small visual tweaks */
+    body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background:#f6f8fb; }
+    .invoice-wrap { max-width:900px; width:100%; background:#fff; border-radius:10px; padding:30px; box-shadow: 0 12px 40px rgba(20,30,60,0.06); border:1px solid rgba(14,20,40,0.03); }
+    .brand-badge { display:inline-block; padding:10px 12px; border-radius:12px; background:linear-gradient(180deg,#fff,#f7fafb); border:1px solid rgba(0,0,0,0.04); box-shadow:0 4px 10px rgba(0,0,0,0.03); font-weight:700; color:#0f172a; }
+    .paid-pill { display:inline-flex; align-items:center; gap:8px; padding:8px 14px; border-radius:999px; background:linear-gradient(180deg,#ecfdf5,#d1fae5); color:#065f46; font-weight:800; border:1px solid rgba(6,95,70,0.12); box-shadow: 0 6px 18px rgba(16,163,127,0.06); }
+    .value-strong { font-weight:800; color:#2b6cb0; }
+    .muted { color:#6b7280; }
+    .table-head { text-transform:uppercase; font-weight:700; color:#475569; font-size:12px; letter-spacing:.6px; }
+    .qr-img { width:160px; height:160px; object-fit:cover; border-radius:8px; box-shadow:0 10px 30px rgba(0,0,0,0.06); border:6px solid #fff; }
+    .invoice-id { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace; color:#374151; }
+    .total-box { background: linear-gradient(180deg,#fff,#f5f7ff); border-radius:10px; padding:18px; border:1px solid rgba(59,130,246,0.12); }
+    .divider { height:1px; background:linear-gradient(90deg, rgba(99,102,241,0.06), rgba(79,70,229,0.06)); margin:20px 0; border-radius:2px; }
+
+    /* mobile tweaks */
+    @media (max-width:640px){
+      .invoice-grid { display:block; }
+      .invoice-wrap { padding:18px; }
+      .qr-img { width:140px; height:140px; }
+    }
+  </style>
 </head>
-<body class="p-4 sm:p-8 flex flex-col items-center min-h-screen">
+<body class="min-h-screen p-6 sm:p-12 flex flex-col items-center">
 
-    <!-- Input Panel (Website Control Area) -->
-    <div class="print-hidden w-full max-w-xl mb-8 bg-white p-6 rounded-xl shadow-xl border border-gray-200">
-        <h1 class="text-3xl font-bold text-gray-800 mb-4 text-center">Invoice Generator</h1>
-        
-        <!-- Connection Info Block -->
-        <p class="text-sm text-green-700 mb-4 p-2 bg-green-100 rounded-lg border border-green-300">
-            ✅ **URL Updated!** The app is now configured with your new live Apps Script URL.
-        </p>
+  <!-- top controls (no-print) -->
+  <div class="w-full max-w-3xl mb-6 no-print">
+    <div class="flex gap-3 items-center">
+      <input id="rowInput" type="number" min="2" value="2" class="flex-1 p-3 border rounded-lg shadow-sm" placeholder="Enter row number (start 2)" />
+      <button id="genBtn" class="px-5 py-3 rounded-lg bg-indigo-600 text-white font-semibold hover:bg-indigo-700">Generate Invoice</button>
+      <button id="printBtn" class="px-4 py-3 rounded-lg bg-green-600 text-white hidden">Print</button>
+    </div>
+    <p id="statusMsg" class="mt-3 text-sm text-gray-600"></p>
+  </div>
 
-        <label for="rowNumber" class="block text-sm font-medium text-gray-700 mb-2">
-            Enter Row Number (Starting from 2):
-        </label>
-        <div class="flex space-x-3">
-            <input type="number" id="rowNumber" value="2" min="2" class="flex-grow p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 shadow-sm" placeholder="e.g., 2, 3, 4">
-            <button onclick="generateInvoice()" class="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition duration-150 shadow-md active:shadow-none">
-                Generate Invoice
-            </button>
+  <!-- invoice -->
+  <div id="invoiceWrap" class="invoice-wrap w-full">
+    <!-- Header -->
+    <div class="flex justify-between items-start gap-6">
+      <div>
+        <div class="text-5xl font-extrabold text-indigo-700">INVOICE</div>
+        <div class="mt-3 text-sm invoice-id">Invoice ID: <span id="invoiceId">INV-00001</span></div>
+      </div>
+
+      <div class="text-right">
+        <div class="brand-badge inline-flex items-center gap-3">
+          <img id="logoImg" src="https://i.ibb.co/sJqfn3w5/1761541971985.png" alt="logo" class="w-10 h-10 rounded-md object-cover" />
+          <div class="text-left">
+            <div class="font-bold text-gray-800">Void PC Games</div>
+            <div class="text-xs muted">Generated on: <span id="generatedOn">--</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- billed to / details -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-start invoice-grid">
+      <div class="md:col-span-2">
+        <div class="p-4 rounded-lg border border-gray-100 bg-gray-50">
+          <div class="mb-3 font-semibold text-indigo-700">Billed To</div>
+          <div class="text-sm">Customer Name: <span id="custName" class="font-semibold text-gray-900">-</span></div>
+          <div class="text-sm mt-1 muted">Transaction Time: <span id="txTime">-</span></div>
+          <div class="text-sm mt-1">Payment Status: <span id="payStatus" class="font-semibold">-</span></div>
         </div>
 
-        <div id="message" class="mt-4 text-sm text-center font-medium"></div>
+        <div class="mt-6 overflow-hidden rounded-lg border border-gray-100">
+          <table class="w-full">
+            <thead class="bg-white table-head">
+              <tr>
+                <th class="text-left px-6 py-3">Description</th>
+                <th class="text-right px-6 py-3">Unit Price</th>
+                <th class="text-right px-6 py-3">Qty</th>
+                <th class="text-right px-6 py-3">Amount</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white">
+              <tr>
+                <td id="descTd" class="px-6 py-6 text-gray-800">-</td>
+                <td id="unitTd" class="px-6 py-6 text-right muted">-</td>
+                <td class="px-6 py-6 text-right muted">1</td>
+                <td id="amountTd" class="px-6 py-6 text-right font-extrabold text-indigo-700">-</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- QR / payment panel -->
+      <div class="flex flex-col items-center gap-6">
+        <div id="paymentPanel" class="w-full p-4 rounded-lg border border-gray-100 bg-white flex flex-col items-center">
+          <!-- content replaced dynamically -->
+        </div>
+
+        <div class="w-full total-box">
+          <div class="flex justify-between text-sm muted mb-2">
+            <span>Subtotal:</span><span id="subtotal">₹0.00</span>
+          </div>
+          <div class="flex justify-between text-sm muted mb-4">
+            <span>Platform Fees:</span><span id="platformFeesDisplay">₹0.00</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <div class="text-sm muted">TOTAL</div>
+            <div class="text-2xl font-extrabold text-indigo-700" id="totalAmount">₹0.00</div>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- Invoice Output Area -->
-    <div id="invoiceOutput" class="w-full max-w-3xl bg-white rounded-xl shadow-2xl transition-all duration-300 min-h-[400px] p-6 sm:p-10 border border-gray-300">
-        <p class="text-gray-500 text-center">Enter a row number and click 'Generate Invoice' to see the result.</p>
-    </div>
+    <div class="divider"></div>
 
-    <!-- Print Button and Share Button Container (Hidden until invoice is generated) -->
-    <div class="print-hidden mt-6 flex space-x-4">
-        <button id="printButton" onclick="window.print()" class="px-8 py-3 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition duration-150 shadow-xl active:shadow-none hidden">
-            <svg class="w-5 h-5 inline mr-2 -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m4 0v3m0-3h-4m4 0h4m-4 0V9m0 8h4m-4 0H9m4 0v-3m-4 3h-4m4 0v-3"></path></svg>
-            Print Invoice
-        </button>
-        <!-- NEW Share Button -->
-        <button id="shareButton" onclick="shareInvoice()" class="px-8 py-3 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition duration-150 shadow-xl active:shadow-none hidden">
-            <svg class="w-5 h-5 inline mr-2 -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.684 14.502 9.273 15.54 10.158 16.273L12 18L13.842 16.273C14.727 15.54 15.316 14.502 15.316 13.342V6.658C15.316 5.498 14.727 4.46 13.842 3.727L12 2L10.158 3.727C9.273 4.46 8.684 5.498 8.684 6.658V13.342Z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18V22M15.316 13.342L18 16L21 13.342M8.684 13.342L5 16L3 13.342"></path></svg>
-            Share Invoice
-        </button>
-    </div>
+    <div class="text-xs muted text-center">Thank You For Purchasing From Us. For Any Queries, Please Contact Void PC Games</div>
+  </div>
 
+  <script>
+    // ---------- CONFIG ----------
+    // Replace with your Apps Script URL if you have a working endpoint
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx0TbFbHSaoL5oYYJ1lYw71MetO6Pyyy-nVra48qv-d5liDXV-HmCZJBl7MtxfcJ6nVLg/exec";
 
-    <script>
-        // --- 1. SIMULATED DATA (Fallback) ---
-        // Headers here MUST match the exact headers in your Google Sheet for the fallback to work correctly.
-        const INVOICE_DATA_FALLBACK = [
-            {
-                "Timestamp": "23/10/2025 22:20:30",
-                "NAME OF CUSTOMER": "tarunendra_vishwakarauna016",
-                "PRODUCT NAME": "spiderman",
-                "PRODUCT BUY PRICE": 0.00,
-                "PRODUCT SELL PRICE": 70.00,
-                "PROFITS": 70.00,
-                "QR Code Url": "https://placehold.co/150x150/805AD5/FFFFFF?text=SPIDERMAN+QR" // Placeholder URL
-            },
-            {
-                "Timestamp": "23/10/2025 22:23:32",
-                "NAME OF CUSTOMER": "_mj__gaming",
-                "PRODUCT NAME": "amazon prime",
-                "PRODUCT BUY PRICE": 49.00,
-                "PRODUCT SELL PRICE": 50.00,
-                "PROFITS": 1.00,
-                "QR Code Url": "https://placehold.co/150x150/F6AD55/FFFFFF?text=AMAZON+QR" // Placeholder URL
-            },
-            {
-                "Timestamp": "23/10/2025 22:28:15",
-                "NAME OF CUSTOMER": "_ml_gaming",
-                "PRODUCT NAME": "netflix",
-                "PRODUCT BUY PRICE": 129.00,
-                "PRODUCT SELL PRICE": 149.00,
-                "PROFITS": 20.00,
-                "QR Code Url": "https://placehold.co/150x150/E53E3E/FFFFFF?text=NETFLIX+QR" // Placeholder URL
-            },
-            {
-                "Timestamp": "25/10/2025 13:06:16",
-                "NAME OF CUSTOMER": "swaraj",
-                "PRODUCT NAME": "Youtube Premium",
-                "PRODUCT BUY PRICE": 122.00,
-                "PRODUCT SELL PRICE": 130.00,
-                "PROFITS": 8.00,
-                "QR Code Url": "https://placehold.co/150x150/38A169/FFFFFF?text=YOUTUBE+QR" // Placeholder URL
-            }
-        ];
-        
-        // --- 2. GOOGLE APPS SCRIPT URL ---
-        // *** THIS IS YOUR LIVE URL ***
-        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx0TbFbHSaoL5oYYJ1lYw71MetO6Pyyy-nVra48qv-d5liDXV-HmCZJBl7MtxfcJ6nVLg/exec"; 
+    // fallback data sample
+    const FALLBACK = [
+      { Timestamp:"2025-10-23 16:50:30Z", "NAME OF CUSTOMER":"tarunendra_vishwakara016", "PRODUCT NAME":"spiderman", "PRODUCT BUY PRICE":0, "PRODUCT SELL PRICE":70, "PAYMENT STATUS":"Paid", "PROFITS":70, "QR Code Url":"https://i.ibb.co/B56cpnDr/Navi-QR-RAMESH-RAISING-CHAVAN-23102025223920205.png", "Platform Fees": "" },
+      { Timestamp:"2025-10-27 14:57:46", "NAME OF CUSTOMER":"_virendra_7777", "PRODUCT NAME":"GTA V", "PRODUCT BUY PRICE":199, "PRODUCT SELL PRICE":300, "PAYMENT STATUS":"Paid", "PROFITS":101, "QR Code Url":"", "Platform Fees": "" },
+      { Timestamp:"2025-10-27 19:43:31", "NAME OF CUSTOMER":"_mj__gaming", "PRODUCT NAME":"Netflix", "PRODUCT BUY PRICE":129, "PRODUCT SELL PRICE":149, "PAYMENT STATUS":"Pending", "PROFITS":20, "QR Code Url":"https://placehold.co/200x200/000000/ffffff?text=QR", "Platform Fees": "" },
+      { Timestamp:"2025-10-28 16:14:01", "NAME OF CUSTOMER":"_mj__gaming", "PRODUCT NAME":"Spider-man 2", "PRODUCT BUY PRICE":199, "PRODUCT SELL PRICE":250, "PAYMENT STATUS":"Pending", "PROFITS":51, "QR Code Url":"https://placehold.co/200x200/000000/ffffff?text=QR", "Platform Fees": 0 }
+    ];
 
-        // --- 3. STATIC QR CODES & LOGO URLS ---
-        // The image link you provided for the UPI QR Code, used for all invoices.
-        const STATIC_UPI_QR_CODE_URL = "https://i.ibb.co/B56cpnDr/Navi-QR-RAMESH-RAISING-CHAVAN-23102025223920205.png"; 
+    const STATIC_QR = "https://i.ibb.co/B56cpnDr/Navi-QR-RAMESH-RAISING-CHAVAN-23102025223920205.png";
+    const UPI_ID = "viraj69rip@ybl";
 
-        // The image link for the company logo.
-        const LOGO_URL = "https://i.ibb.co/VcCGXHV8/1761541971985.png";
+    // ---------- helpers ----------
+    function el(id){ return document.getElementById(id); }
+    function fmtINR(n){ return "₹" + Number(n||0).toLocaleString("en-IN",{minimumFractionDigits:2}); }
+    function nowStr(){ return (new Date()).toLocaleString(); }
+    function normalizeStatus(s){ if(!s) return ""; return String(s).trim().toLowerCase(); }
 
-        // Your UPI ID
-        const UPI_ID = "viraj69rip@ybl";
+    // layout elements
+    const statusMsg = el('statusMsg');
+    const rowInput = el('rowInput');
+    const genBtn = el('genBtn');
+    const printBtn = el('printBtn');
 
+    // invoice fields
+    const invoiceIdEl = el('invoiceId');
+    const generatedOnEl = el('generatedOn');
+    const custNameEl = el('custName');
+    const txTimeEl = el('txTime');
+    const payStatusEl = el('payStatus');
+    const descTd = el('descTd');
+    const unitTd = el('unitTd');
+    const amountTd = el('amountTd');
+    const subtotalEl = el('subtotal');
+    const totalEl = el('totalAmount');
+    const platformFeesDisplay = el('platformFeesDisplay');
+    const paymentPanel = el('paymentPanel');
+    const logoImg = el('logoImg');
 
-        // --- 4. DOM ELEMENTS ---
-        const inputRowNumber = document.getElementById('rowNumber');
-        const outputArea = document.getElementById('invoiceOutput');
-        const messageBox = document.getElementById('message');
-        const printBtn = document.getElementById('printButton');
-        const shareBtn = document.getElementById('shareButton'); // New element reference
-
-        /**
-         * Clears messages and the invoice output area.
-         */
-        function clearOutput() {
-            messageBox.textContent = '';
-            outputArea.innerHTML = '';
-            printBtn.classList.add('hidden');
-            shareBtn.classList.add('hidden'); // Hide share button as well
+    // ---------- utility to read platform fees safely ----------
+    function readPlatformFees(record){
+      const keys = ['Platform Fees','PlatformFees','platform fees','platform_fees','Platform_Fees','platformFees','Platform Fee','Platform_fee','platformfee'];
+      for(const k of keys){
+        if(record && Object.prototype.hasOwnProperty.call(record,k)){
+          const v = record[k];
+          if(v === "" || v === null || v === undefined) return 0;
+          const num = Number(String(v).replace(/[^0-9.\-]/g,'')); // try sanitize
+          return isNaN(num) ? 0 : num;
         }
+      }
+      // fallback if none present
+      return 0;
+    }
 
-        /**
-         * Main function to validate input, fetch data, and generate the invoice HTML.
-         */
-        async function generateInvoice() {
-            clearOutput();
+    // ---------- render functions ----------
+    function renderPaymentBlock(record, finalAmount){
+      const status = normalizeStatus(record['PAYMENT STATUS'] || record['Payment Status'] || record['status'] || "");
+      const isPaid = status.includes('paid') || status.includes('completed') || status.includes('success');
 
-            const rowNumber = parseInt(inputRowNumber.value.trim(), 10);
-            
-            // Validation
-            if (isNaN(rowNumber) || rowNumber < 2) {
-                messageBox.textContent = 'Please enter a valid row number starting from 2.';
-                messageBox.classList.add('text-red-600');
-                return;
-            }
+      // clear
+      paymentPanel.innerHTML = "";
 
-            let dataArray;
-            let source = 'local data';
+      if(isPaid){
+        // show improved paid badge and a small thank-you message
+        const wrapper = document.createElement('div');
+        wrapper.className = "w-full flex flex-col items-center p-4";
+        wrapper.innerHTML = `
+          <div class="paid-pill mb-3">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M20 6L9 17l-5-5" stroke="#065f46" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span>PAID</span>
+          </div>
+          <div class="text-sm text-gray-600 text-center">Payment received — thank you for your purchase!</div>
+        `;
+        paymentPanel.appendChild(wrapper);
+      } else {
+        // pending -> show QR + UPI + amount
+        const qrUrl = record['QR Code Url'] || record['QR'] || STATIC_QR;
+        const wrapper = document.createElement('div');
+        wrapper.className = "w-full flex flex-col items-center p-4";
+        wrapper.innerHTML = `
+          <div class="text-sm font-semibold mb-2">Scan to Pay (UPI)</div>
+          <div class="text-indigo-700 font-bold mb-2">Total Due: ${finalAmount}</div>
+          <a href="${qrUrl}" target="_blank" rel="noopener noreferrer" class="block mb-3">
+            <img src="${qrUrl}" alt="QR" class="qr-img" onerror="this.onerror=null; this.src='${STATIC_QR}';" />
+          </a>
+          <div class="text-sm font-semibold">${UPI_ID}</div>
+        `;
+        paymentPanel.appendChild(wrapper);
+      }
+    }
 
-            if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== "YOUR_NEWLY_GENERATED_APPS_SCRIPT_URL_HERE") {
-                // --- Live API Fetch Path ---
-                messageBox.textContent = 'Fetching live data...';
-                messageBox.classList.remove('text-red-600', 'text-green-600');
-                messageBox.classList.add('text-gray-700');
-                source = 'live API';
-                
-                try {
-                    // Call the Apps Script Web App to get all sheet data
-                    const response = await fetch(APPS_SCRIPT_URL);
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    const result = await response.json();
+    function renderInvoiceFromRecord(rowNumber, record){
+      // invoice id
+      invoiceIdEl.textContent = "INV-" + String(rowNumber).padStart(5,'0');
+      generatedOnEl.textContent = nowStr();
 
-                    if (result.error) {
-                         throw new Error(`Apps Script Error: ${result.error}`);
-                    }
-                    
-                    // The script is configured to return data under the "data-a" key
-                    dataArray = result["data-a"]; 
-                    if (!dataArray || dataArray.length === 0) {
-                        // Attempt to fall back to 'data' key if 'data-a' fails, just in case the script changed.
-                        dataArray = result.data;
-                        if (!dataArray || dataArray.length === 0) {
-                            throw new Error("Data array is empty. Check if your sheet has data.");
-                        }
-                    }
+      const cust = record['NAME OF CUSTOMER'] || record['Name'] || record['NAME'] || "Unknown";
+      custNameEl.textContent = cust;
 
-                } catch (error) {
-                    // If API fails, fall back to local data and show an error
-                    console.error('API Fetch Error:', error);
-                    messageBox.textContent = '⚠️ Could not fetch live data. Using simulated local data as a fallback.';
-                    messageBox.classList.remove('text-green-600');
-                    messageBox.classList.add('text-red-600');
-                    dataArray = INVOICE_DATA_FALLBACK;
-                    source = 'local data (API failed)';
-                }
-            } else {
-                // --- Fallback Path ---
-                dataArray = INVOICE_DATA_FALLBACK;
-                messageBox.textContent = 'Using simulated local data. Please update APPS_SCRIPT_URL to connect live.';
-                messageBox.classList.remove('text-green-600', 'text-gray-700');
-                messageBox.classList.add('text-red-600');
-            }
+      const ts = record['Timestamp'] || record['Date'] || "";
+      txTimeEl.textContent = ts;
 
+      const paymentStatusText = record['PAYMENT STATUS'] || record['Payment Status'] || record['status'] || "";
+      payStatusEl.textContent = paymentStatusText || "Pending";
 
-            // --- Data Processing (Same logic regardless of source) ---
-            const dataIndex = rowNumber - 2;
-            
-            const maxRowNumber = dataArray.length + 1; 
+      const product = record['PRODUCT NAME'] || record['Product'] || "Product";
+      descTd.textContent = product;
 
-            if (dataIndex < 0 || dataIndex >= dataArray.length) {
-                messageBox.textContent = `Row ${rowNumber} is outside the range of the current data rows (2-${maxRowNumber}).`;
-                messageBox.classList.remove('text-green-600', 'text-gray-700');
-                messageBox.classList.add('text-red-600');
-                return;
-            }
+      const sell = Number(record['PRODUCT SELL PRICE'] ?? record['PRODUCT_SELL_PRICE'] ?? record['PRODUCTSELLPRICE'] ?? 0);
+      unitTd.textContent = fmtINR(sell);
+      amountTd.textContent = fmtINR(sell);
+      subtotalEl.textContent = fmtINR(sell);
 
-            // Get the record
-            const record = dataArray[dataIndex];
-            
-            // Use the exact header names as keys
-            const sellPriceValue = record["PRODUCT SELL PRICE"];
-            // Format with Rupee symbol
-            const finalPrice = '₹' + sellPriceValue.toFixed(2); 
-            
-            // Generate the Invoice HTML
-            const invoiceHTML = generateInvoiceTemplate(rowNumber, record, finalPrice);
+      // read platform fees safely (default 0)
+      const pf = readPlatformFees(record);
+      platformFeesDisplay.textContent = fmtINR(pf);
 
-            outputArea.innerHTML = invoiceHTML;
-            
-            messageBox.textContent = `Invoice successfully generated for Row ${rowNumber}. (Source: ${source})`;
-            messageBox.classList.remove('text-red-600', 'text-gray-700');
-            messageBox.classList.add('text-green-600');
+      // keep total as sell price (unchanged). If you want total = sell - platform fees, tell me.
+      totalEl.textContent = fmtINR(sell);
 
-            printBtn.classList.remove('hidden');
-            shareBtn.classList.remove('hidden'); // Show the share button
+      renderPaymentBlock(record, fmtINR(sell));
+      printBtn.classList.remove('hidden');
+    }
+
+    // ---------- data load ----------
+    async function fetchDataArray(){
+      statusMsg.textContent = "Fetching live data...";
+      try {
+        const res = await fetch(APPS_SCRIPT_URL, {cache: "no-store"});
+        if(!res.ok) throw new Error("Bad status " + res.status);
+        const json = await res.json();
+        // try common structure
+        let arr = json['data-a'] || json.data || json.rows || json;
+        // if object, try to convert to array of values
+        if(arr && typeof arr === 'object' && !Array.isArray(arr)){
+          const maybe = Object.values(arr).filter(v => typeof v === 'object');
+          if(maybe.length) arr = maybe;
         }
+        if(!Array.isArray(arr) || arr.length === 0) throw new Error("No rows in response");
+        statusMsg.textContent = "Live data loaded (" + arr.length + " rows).";
+        return arr;
+      } catch(err) {
+        console.warn("Live fetch failed:", err);
+        statusMsg.textContent = "Using fallback sample data (live fetch failed).";
+        return FALLBACK;
+      }
+    }
 
-        /**
-         * Creates the visual invoice HTML template.
-         */
-        function generateInvoiceTemplate(rowNumber, record, finalPrice) {
-            
-            // --- Keys are the exact header names from the Google Sheet ---
-            const qrCodeUrl = STATIC_UPI_QR_CODE_URL; 
+    // ---------- main flow ----------
+    async function generateForRow(rowNumber){
+      const data = await fetchDataArray();
+      const idx = rowNumber - 2; // sheet / form responses first data row is 2
+      if(idx < 0 || idx >= data.length){
+        statusMsg.textContent = "Row out of range. Available rows: 2 - " + (data.length + 1);
+        return;
+      }
+      const rec = data[idx];
+      renderInvoiceFromRecord(rowNumber, rec);
+      statusMsg.textContent = "Invoice generated from row " + rowNumber + ".";
+    }
 
-            const customerName = record["NAME OF CUSTOMER"];
-            const productName = record["PRODUCT NAME"];
-            const sellPrice = record["PRODUCT SELL PRICE"];
-            const timestamp = record["Timestamp"]; 
+    // click handlers
+    genBtn.addEventListener('click', function(){
+      const v = parseInt(rowInput.value,10);
+      if(!Number.isInteger(v) || v < 2){
+        statusMsg.textContent = "Enter a valid row number (start from 2).";
+        return;
+      }
+      generateForRow(v);
+    });
 
-            return `
-                <!-- Invoice Header -->
-                <div class="flex justify-between items-start border-b-2 border-indigo-200 pb-4 mb-8">
-                    <div>
-                        <h2 class="text-5xl font-extrabold text-indigo-700 tracking-tight">INVOICE</h2>
-                        <p class="text-sm text-gray-500 mt-2 font-mono">Invoice ID: INV-${rowNumber.toString().padStart(5, '0')}</p>
-                    </div>
-                    
-                    <!-- Company Logo and Details -->
-                    <div class="text-right flex flex-col items-end">
-                        <img 
-                            src="${LOGO_URL}" 
-                            alt="Void PC Games Logo" 
-                            class="h-12 w-auto mb-2 rounded-lg shadow-md"
-                            onerror="this.onerror=null;this.src='https://placehold.co/100x48/CCCCCC/333333?text=Logo+Missing';"
-                        />
-                        <p class="text-xl font-bold text-gray-800">Void PC Games</p>
-                        <p class="text-sm text-gray-600">Generated on: ${new Date().toLocaleDateString()}</p>
-                    </div>
-                </div>
+    printBtn.addEventListener('click', function(){
+      window.print();
+    });
 
-                <!-- Customer Details -->
-                <div class="mb-8 p-4 bg-indigo-50 rounded-xl shadow-inner">
-                    <h3 class="text-xl font-bold text-indigo-700 mb-2 border-b border-indigo-200 pb-1">Billed To</h3>
-                    <p class="text-gray-700 font-medium">Customer Name: <span class="text-gray-900 font-extrabold">${customerName}</span></p>
-                    <p class="text-gray-700 text-sm">Transaction Time: ${timestamp}</p>
-                </div>
-
-                <!-- Line Items Table -->
-                <div class="mb-8 border border-gray-200 rounded-lg overflow-hidden">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-100">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Description</th>
-                                <th class="px-6 py-3 text-right text-xs font-bold text-gray-600 uppercase tracking-wider">Unit Price</th>
-                                <th class="px-6 py-3 text-right text-xs font-bold text-gray-600 uppercase tracking-wider">Qty</th>
-                                <th class="px-6 py-3 text-right text-xs font-bold text-gray-600 uppercase tracking-wider">Amount</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-100">
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap text-base font-medium text-gray-900">${productName}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-base text-gray-700 text-right">₹${sellPrice.toFixed(2)}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-base text-gray-700 text-right">1</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-base font-extrabold text-indigo-600 text-right">${finalPrice}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Totals & Payment Section -->
-                <div class="flex flex-col sm:flex-row justify-between items-start pt-4 border-t border-gray-200 mt-6">
-                    
-                    <!-- QR Code Payment: NOW WRAPPED IN ANCHOR TAG -->
-                    <div class="flex flex-col items-center w-full sm:w-2/5 mb-6 sm:mb-0 p-4 border border-gray-200 rounded-xl shadow-md bg-white">
-                        <p class="text-base font-semibold text-gray-700 mb-2">Scan to Pay (UPI)</p>
-                        <!-- Total Due moved above QR -->
-                        <p class="text-sm text-indigo-600 mb-3 font-bold">Total Due: ${finalPrice}</p> 
-                        <a href="https://ibb.co/67trMXh1" target="_blank" rel="noopener noreferrer">
-                            <img 
-                                src="${qrCodeUrl}" 
-                                alt="Payment QR Code Link" 
-                                class="w-36 h-36 rounded-lg shadow-xl border-2 border-indigo-400"
-                                onerror="this.onerror=null;this.src='https://placehold.co/150x150/CCCCCC/666666?text=QR+Error';"
-                            />
-                        </a>
-                        <!-- UPI ID Below QR Code - STYLING UPDATED -->
-                        <p class="text-sm font-semibold text-gray-700 mt-2">${UPI_ID}</p> 
-                    </div>
-
-                    <!-- Total Summary -->
-                    <div class="w-full sm:w-1/2 md:w-2/5 bg-indigo-50 p-6 rounded-xl border border-indigo-300 shadow-xl">
-                        <div class="flex justify-between font-medium text-gray-700 mb-2">
-                            <span>Subtotal:</span>
-                            <span>${finalPrice}</span>
-                        </div>
-                        <div class="flex justify-between font-medium text-gray-700 mb-4 border-b border-indigo-300 pb-2">
-                            <span>Tax (0%):</span>
-                            <span>₹0.00</span>
-                        </div>
-                        <div class="flex justify-between font-extrabold text-2xl text-indigo-700">
-                            <span>TOTAL:</span>
-                            <span>${finalPrice}</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Footer / Internal Data -->
-                <div class="mt-8 pt-4 border-t border-gray-200 text-center text-xs text-gray-500">
-                    <p>Thank You For Purchasing From Us. For Any Queries, Please Contact Void PC Games</p>
-           </div>
-            `;
+    // support query string ?row=NN
+    (function initFromQuery(){
+      const params = new URLSearchParams(window.location.search);
+      const q = params.get('row');
+      if(q){
+        const rn = parseInt(q,10);
+        if(Number.isInteger(rn) && rn >= 2){
+          rowInput.value = rn;
+          // auto-generate
+          generateForRow(rn);
         }
+      }
+    })();
 
-        /**
-         * Shares the generated invoice details using Web Share API or falls back to copying the link.
-         */
-        async function shareInvoice() {
-            const rowNumber = inputRowNumber.value.trim();
-            const customerNameElement = outputArea.querySelector('.font-extrabold');
-            const finalPriceElement = outputArea.querySelector('.text-2xl.text-indigo-700 > span:last-child');
-            const productNameElement = outputArea.querySelector('.text-base.font-medium.text-gray-900');
-            
-            // Defensive checks
-            if (!customerNameElement || !finalPriceElement || !productNameElement) {
-                 messageBox.textContent = '❌ Cannot share yet. Please generate the invoice first.';
-                 messageBox.classList.remove('text-green-600', 'text-gray-700');
-                 messageBox.classList.add('text-red-600');
-                 return;
-            }
+    // on load, set some defaults
+    generatedOnEl.textContent = nowStr();
+  </script>
 
-            const customerName = customerNameElement.textContent;
-            const finalPrice = finalPriceElement.textContent;
-            const productName = productNameElement.textContent;
-            
-            const shareText = `Invoice INV-${rowNumber} for ${customerName}\nProduct: ${productName}\nTotal Due: ${finalPrice}\n\nTo view this invoice, open the app (link below) and enter Row Number ${rowNumber}.`;
-            
-            // 1. Try Web Share API (native share dialog)
-            if (navigator.share) {
-                try {
-                    await navigator.share({
-                        title: `Invoice INV-${rowNumber}`,
-                        text: shareText,
-                        url: window.location.href // Share the app link
-                    });
-                    messageBox.textContent = `✅ Invoice details shared successfully!`;
-                    messageBox.classList.remove('text-red-600', 'text-gray-700');
-                    messageBox.classList.add('text-green-600');
-                    return;
-                } catch (error) {
-                    if (error.name === 'AbortError') return; // User closed dialog
-                    console.error('Web Share API failed, falling back to copy:', error);
-                }
-            }
-
-            // 2. Fallback to Clipboard Copy (using document.execCommand('copy') for iFrame reliability)
-            const clipboardText = shareText + "\n\nApp Link: " + window.location.href;
-            
-            try {
-                // Create a temporary textarea to hold the text
-                const tempTextArea = document.createElement('textarea');
-                tempTextArea.value = clipboardText;
-                tempTextArea.style.position = 'fixed';
-                tempTextArea.style.opacity = '0'; // Hide it
-                document.body.appendChild(tempTextArea);
-                
-                tempTextArea.select();
-                // Use document.execCommand('copy') as it is more reliable in iFrames
-                const success = document.execCommand('copy'); 
-                
-                document.body.removeChild(tempTextArea);
-
-                if (success) {
-                    messageBox.textContent = `✅ Invoice link and details copied to clipboard! Tell the recipient to use Row Number ${rowNumber}.`;
-                    messageBox.classList.remove('text-red-600', 'text-gray-700');
-                    messageBox.classList.add('text-green-600');
-                } else {
-                     throw new Error("document.execCommand('copy') returned false.");
-                }
-            } catch (err) {
-                console.error('Copy failed:', err);
-                messageBox.textContent = '❌ Automatic copying failed. Please manually copy the app link and share Row Number ' + rowNumber + '.';
-                messageBox.classList.remove('text-green-600', 'text-gray-700');
-                messageBox.classList.add('text-red-600');
-            }
-        }
-
-        // Initialize by running the function once for a default view of row 2
-        window.onload = generateInvoice;
-    </script>
 </body>
 </html>
-
